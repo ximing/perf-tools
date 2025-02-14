@@ -109,6 +109,12 @@
 .frame-item.selected {
   border: 2px solid #ed5408;
 }
+.frame-item-start.selected {
+  border: 2px solid #fe0404;
+}
+.frame-item-end.selected {
+  border: 2px solid #cb04e9;
+}
 
 /* 预览区域 */
 .frames-preview {
@@ -190,60 +196,141 @@
   font-size: 14px;
 }
 
-/* 时间轴样式 */
+/* 时间轴容器 */
 .timeline-container {
   padding: 20px;
   position: relative;
-  background: #f0f0f0;
-  border-radius: 4px;
+  background: linear-gradient(to bottom, #2c2c2c, #1a1a1a);
+  border-radius: 8px;
   margin: 10px 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* 时间轴主体 */
 .timeline {
   width: 100%;
-  height: 40px;
+  height: 50px;
   position: relative;
-  background: #fff;
+  background: #333;
   border-radius: 4px;
   cursor: pointer;
   user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* 时间刻度 */
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background-image: repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.1) 0px,
+      rgba(255, 255, 255, 0.1) 1px,
+      transparent 1px,
+      transparent 50px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0px,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px,
+      transparent 10px
+    );
+}
+
+/* 时间轴滑块 */
 .timeline-slider {
   position: absolute;
-  width: 4px;
-  height: 100%;
-  background: #1890ff;
-  top: 0px;
+  width: 2px;
+  height: calc(100% + 16px);
+  background: #ed5408;
+  top: -8px;
   transform: translateX(-50%);
   cursor: grab;
+  transition: width 0.2s ease;
 }
 
-.timeline-slider.dragging {
-  cursor: grabbing;
-  background: #ed5408;
-}
-
-/* 确保拖拽时预览图始终显示在最上层 */
-.preview-image {
-  z-index: 1000;
-}
-
-.timeline-slider.dragging .preview-image {
-  z-index: 1001;
+/* 滑块顶部手柄 */
+.timeline-slider::before {
+  content: '';
   position: absolute;
-  top: -400px;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #ed5408;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(237, 84, 8, 0.3);
+  transition: all 0.2s ease;
 }
 
+/* 滑块底部手柄 */
 .timeline-slider::after {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid currentColor;
+  width: 12px;
+  height: 12px;
+  background: #ed5408;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(237, 84, 8, 0.3);
+  transition: all 0.2s ease;
+}
+
+/* 拖动状态 */
+.timeline-slider.dragging {
+  width: 4px;
+  background: #ff6b1b;
+}
+
+.timeline-slider.dragging::before,
+.timeline-slider.dragging::after {
+  width: 16px;
+  height: 16px;
+  background: #ff6b1b;
+  box-shadow: 0 0 0 4px rgba(255, 107, 27, 0.3);
+}
+
+/* 预览图样式 */
+.timeline-slider .preview-image {
+  position: absolute;
+  top: -500px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2c2c2c;
+  padding: 4px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.timeline-slider .preview-image img {
+  width: 200px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+/* 时间戳显示 */
+.timeline-slider .preview-image::after {
+  content: attr(data-time);
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2c2c2c;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  color: #fff;
+  white-space: nowrap;
 }
 
 /* 移除旧的重复样式 */
@@ -265,6 +352,7 @@
   align-items: center;
   justify-content: center;
   flex: 1;
+  flex-direction: column;
 }
 
 .frame-drop-zone.dragging {

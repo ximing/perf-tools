@@ -3,6 +3,7 @@ import { Upload, Button, Space, message, Image } from 'antd'
 import { InboxOutlined, CopyOutlined } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import './video.css'
+import clsx from 'clsx'
 
 interface FrameInfo {
   path: string
@@ -289,7 +290,14 @@ const VideoFrameAnalyzer: React.FC = () => {
               className={`frame-drop-zone ${isDragging === 'start' ? 'dragging' : ''}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop('start', e)}
+              onClick={() => {
+                if (startFrame) {
+                  setCurrentFrame(startFrame)
+                  throttledScroll(startFrame.index)
+                }
+              }}
             >
+              <h3>开始帧</h3>
               {startFrame ? (
                 <img src={`file://${startFrame.path}`} alt="Start Frame" />
               ) : (
@@ -300,7 +308,14 @@ const VideoFrameAnalyzer: React.FC = () => {
               className={`frame-drop-zone ${isDragging === 'end' ? 'dragging' : ''}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop('end', e)}
+              onClick={() => {
+                if (endFrame) {
+                  setCurrentFrame(endFrame)
+                  throttledScroll(endFrame.index)
+                }
+              }}
             >
+              <h3>结束帧</h3>
               {endFrame ? (
                 <img src={`file://${endFrame.path}`} alt="End Frame" />
               ) : (
@@ -314,13 +329,18 @@ const VideoFrameAnalyzer: React.FC = () => {
             {frames.map((frame) => (
               <div
                 key={frame.index}
-                className={`frame-item ${
+                className={clsx(
+                  'frame-item',
                   currentFrame?.index === frame.index ||
-                  startFrame?.index === frame.index ||
-                  endFrame?.index === frame.index
+                    startFrame?.index === frame.index ||
+                    endFrame?.index === frame.index
                     ? 'selected'
-                    : ''
-                }`}
+                    : '',
+                  {
+                    'frame-item-start': startFrame?.index === frame.index,
+                    'frame-item-end': endFrame?.index === frame.index
+                  }
+                )}
                 draggable
                 onDragStart={(e) => handleDragStart(frame, e)}
                 onClick={() => setCurrentFrame(frame)}
@@ -357,7 +377,7 @@ const VideoFrameAnalyzer: React.FC = () => {
                     left: `${(currentFrame.index / (frames.length - 1)) * 100}%`
                   }}
                 >
-                  <div className="preview-image">
+                  <div className="preview-image" data-time={formatDuration(currentFrame.timestamp)}>
                     <img src={`file://${currentFrame.path}`} alt="Preview" />
                   </div>
                 </div>
