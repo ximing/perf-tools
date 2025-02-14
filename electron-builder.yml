@@ -13,9 +13,9 @@ files:
 asarUnpack:
   - resources/**
 win:
-  icon: build/icon.ico
   executableName: perf-tools
-  validateIcon: false
+  # 暂时注释掉图标配置
+  # icon: build/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
