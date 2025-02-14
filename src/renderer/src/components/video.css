@@ -7,10 +7,12 @@
   overflow: auto;
   display: flex;
   width: 100vw;
+  scroll-behavior: smooth;
 }
 .frame-item {
   margin-right: 4px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
+  scroll-snap-align: center;
 }
 .frame-item img {
   width: 50px;
@@ -38,8 +40,8 @@
   transition: all 0.3s ease;
 }
 
-/* 预览图样式 */
-.frame-preview {
+/* 帧预览样式 */
+.preview-image {
   display: none;
   position: fixed;
   top: 50%;
@@ -52,16 +54,26 @@
   border-radius: 4px;
   max-width: 80vw;
   max-height: 80vh;
+  pointer-events: none;
 }
 
-.frame-preview img {
-  width: 100%;
+.preview-image img {
+  width: 200px;
   max-height: calc(80vh - 20px);
   object-fit: contain;
+  border-radius: 2px;
 }
 
-.frame-item:hover .frame-preview {
+/* 时间轴预览显示规则 */
+.timeline-slider.dragging .preview-image {
+  display: block !important;
+  z-index: 1001;
+}
+
+/* 帧预览显示规则 */
+.frame-item:hover .preview-image {
   display: block;
+  top: calc(50% - 100px);
 }
 
 /* 时间戳标签 */
@@ -82,7 +94,7 @@
 
 /* 选中状态 */
 .frame-item.selected {
-  border: 1px solid #1890ff;
+  border: 2px solid #ed5408;
 }
 
 /* 预览区域 */
@@ -153,4 +165,90 @@
   color: #666;
   margin-top: 5px;
   font-size: 14px;
+}
+
+/* 时间轴样式 */
+.timeline-container {
+  padding: 20px;
+  position: relative;
+  background: #f0f0f0;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.timeline {
+  width: 100%;
+  height: 40px;
+  position: relative;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.timeline-slider {
+  position: absolute;
+  width: 4px;
+  height: 100%;
+  background: #1890ff;
+  top: 0px;
+  transform: translateX(-50%);
+  cursor: grab;
+}
+
+.timeline-slider.dragging {
+  cursor: grabbing;
+  background: #ed5408;
+}
+
+/* 确保拖拽时预览图始终显示在最上层 */
+.preview-image {
+  z-index: 1000;
+}
+
+.timeline-slider.dragging .preview-image {
+  z-index: 1001;
+  position: absolute;
+  top: -400px;
+}
+
+.timeline-slider::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid currentColor;
+}
+
+/* 移除旧的重复样式 */
+.timeline-preview,
+.frame-preview {
+  display: none;
+}
+
+/* 拖放区域样式 */
+.frame-drop-zone {
+  border: 2px dashed #d9d9d9;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  background: #fafafa;
+  transition: all 0.3s;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.frame-drop-zone.dragging {
+  border-color: #1890ff;
+  background: #e6f7ff;
+}
+
+.frame-drop-zone img {
+  max-height: 400px;
 }
