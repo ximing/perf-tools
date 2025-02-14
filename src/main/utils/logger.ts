@@ -11,7 +11,7 @@ class Logger {
 
   constructor() {
     // 在系统临时目录下创建应用专用的日志目录
-    const appTempDir = path.join(os.tmpdir(), 'perf-tools', 'logs')
+    const appTempDir = path.join(app.getPath('temp'), 'perf-tools', 'logs')
     this.logPath = path.join(appTempDir, 'app.log')
     this.initLogFile()
     this.cleanOldLogs()
