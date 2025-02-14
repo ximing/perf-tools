@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Upload, Button, Space, message, Image } from 'antd'
-import { InboxOutlined } from '@ant-design/icons'
+import { InboxOutlined, CopyOutlined } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import './video.css'
 
@@ -22,6 +22,40 @@ declare global {
 }
 
 const { Dragger } = Upload
+
+function throttle<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+  let previous = 0
+
+  return function (...args: Parameters<T>) {
+    const now = Date.now()
+
+    if (!previous) {
+      previous = now
+    }
+
+    const remaining = wait - (now - previous)
+
+    if (remaining <= 0 || remaining > wait) {
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = null
+      }
+
+      previous = now
+      func.apply(this, args)
+    } else if (!timeout) {
+      timeout = setTimeout(() => {
+        previous = Date.now()
+        timeout = null
+        func.apply(this, args)
+      }, remaining)
+    }
+  }
+}
 
 const VideoFrameAnalyzer: React.FC = () => {
   const [frames, setFrames] = useState<FrameInfo[]>([])
@@ -64,21 +98,6 @@ const VideoFrameAnalyzer: React.FC = () => {
     }
   }
 
-  const handleFrameClick = (frame: FrameInfo) => {
-    if (!startFrame) {
-      setStartFrame(frame)
-    } else if (!endFrame) {
-      if (frame.index < startFrame.index) {
-        setStartFrame(frame)
-      } else {
-        setEndFrame(frame)
-      }
-    } else {
-      setStartFrame(frame)
-      setEndFrame(null)
-    }
-  }
-
   const formatDuration = (milliseconds: number): string => {
     const totalSeconds = milliseconds / 1000
     const minutes = Math.floor(totalSeconds / 60)
@@ -113,6 +132,28 @@ const VideoFrameAnalyzer: React.FC = () => {
     }
   }
 
+  // 使用节流处理滚动
+  const throttledScroll = useCallback(
+    throttle((frameIndex: number) => {
+      if (framesContainerRef.current) {
+        const frameElement = framesContainerRef.current.children[frameIndex] as HTMLElement
+        if (frameElement) {
+          const containerWidth = framesContainerRef.current.clientWidth
+          const frameLeft = frameElement.offsetLeft
+          const frameWidth = frameElement.offsetWidth
+
+          const scrollPosition = frameLeft - containerWidth / 2 + frameWidth / 2
+
+          framesContainerRef.current.scrollTo({
+            left: Math.max(0, scrollPosition),
+            behavior: isDraggingTimeline ? 'auto' : 'smooth'
+          })
+        }
+      }
+    }, 100),
+    [isDraggingTimeline]
+  )
+
   // 处理时间轴点击和拖动
   const handleTimelineInteraction = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current || frames.length === 0) return
@@ -123,23 +164,8 @@ const VideoFrameAnalyzer: React.FC = () => {
     const frameIndex = Math.min(Math.floor(percentage * frames.length), frames.length - 1)
     const frame = frames[frameIndex]
     setCurrentFrame(frame)
-
-    // 滚动到对应的帧
-    if (framesContainerRef.current) {
-      const frameElement = framesContainerRef.current.children[frameIndex] as HTMLElement
-      if (frameElement) {
-        const containerWidth = framesContainerRef.current.clientWidth
-        const frameLeft = frameElement.offsetLeft
-        const frameWidth = frameElement.offsetWidth
-
-        const scrollPosition = frameLeft - containerWidth / 2 + frameWidth / 2
-
-        framesContainerRef.current.scrollTo({
-          left: Math.max(0, scrollPosition),
-          behavior: isDraggingTimeline ? 'auto' : 'smooth'
-        })
-      }
-    }
+    // 调用节流后的滚动函数
+    throttledScroll(frameIndex)
   }
 
   // 处理时间轴拖动开始
@@ -196,6 +222,20 @@ const VideoFrameAnalyzer: React.FC = () => {
     e.preventDefault()
   }
 
+  // 添加复制函数
+  const handleCopyDuration = () => {
+    const duration = getDuration()
+    if (duration) {
+      navigator.clipboard.writeText(duration.toString())
+      message.success('已复制到剪贴板')
+    }
+  }
+
+  // 添加双击处理函数
+  const handleDurationDoubleClick = () => {
+    handleCopyDuration()
+  }
+
   return (
     <>
       {frames.length === 0 ? (
@@ -210,29 +250,39 @@ const VideoFrameAnalyzer: React.FC = () => {
           {loading && (
             <div className="upload-overlay">
               <div className="progress-container">
-                <div className="progress-bar" style={{ width: `${progress}%` }} />
+                <div className="progress-bar" style={{ width: `${progress / 100}%` }} />
               </div>
-              <div className="progress-text">正在处理视频... {progress.toFixed(1)}%</div>
+              <div className="progress-text">正在处理视频... {(progress / 100).toFixed(1)}%</div>
             </div>
           )}
         </div>
       ) : (
         <div className="video-container">
-          <Space style={{ marginBottom: '20px' }}>
-            <Button onClick={handleReset} loading={loading}>
-              重置
+          <div className="video-header">
+            <div className="duration-display-container">
+              {startFrame && endFrame && (
+                <Space>
+                  <div className="duration-display" onClick={handleDurationDoubleClick}>
+                    <span>选择时长: {getDuration()} ms</span>
+                    <Button
+                      type="text"
+                      icon={<CopyOutlined />}
+                      onClick={handleCopyDuration}
+                      size="small"
+                      className="copy-button"
+                    />
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    (从 {formatDuration(startFrame.timestamp)} 到{' '}
+                    {formatDuration(endFrame.timestamp)})
+                  </div>
+                </Space>
+              )}
+            </div>
+            <Button className="reset-button" onClick={handleReset} loading={loading}>
+              重新上传视频
             </Button>
-            {startFrame && endFrame && (
-              <div>
-                选择时长: {getDuration()} ms
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  (从 {formatDuration(startFrame.timestamp)} 到 {formatDuration(endFrame.timestamp)}
-                  )
-                </div>
-              </div>
-            )}
-          </Space>
-
+          </div>
           {/* 拖放区域 */}
           <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flex: 1 }}>
             <div

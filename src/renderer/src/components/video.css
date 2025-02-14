@@ -2,7 +2,20 @@
   height: 100vh;
   flex-direction: column;
   display: flex;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
+.video-header {
+  padding-bottom: 10px;
+  display: flex;
+}
+.duration-display-container {
+  display: flex;
+  flex: 1;
+}
+
 .frames-container {
   overflow: auto;
   display: flex;
@@ -129,6 +142,16 @@
 .upload-container {
   padding: 20px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+}
+.upload-container .ant-upload-wrapper {
+  width: 100%;
+  height: 100%;
 }
 
 .upload-overlay {
@@ -251,4 +274,79 @@
 
 .frame-drop-zone img {
   max-height: 400px;
+}
+
+.duration-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.duration-display:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.duration-display .copy-button {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.duration-display:hover .copy-button {
+  opacity: 1;
+}
+
+.duration-display .copy-button:hover {
+  color: #1890ff;
+}
+
+.reset-button {
+  position: relative;
+  border: none !important;
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.reset-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #6253e1, #04befe);
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.reset-button:hover::before {
+  opacity: 0.8;
+}
+
+.reset-button > span {
+  position: relative;
+  z-index: 2;
+  color: white;
+}
+
+/* 加载状态样式 */
+.reset-button.ant-btn-loading::before {
+  opacity: 0.7;
+}
+
+.reset-button.ant-btn-loading > span {
+  opacity: 0.9;
+}
+
+/* 禁用状态样式 */
+.reset-button[disabled]::before {
+  background: linear-gradient(135deg, #9e97e9, #7dcff7);
+  opacity: 0.5;
+}
+
+/* 点击效果 */
+.reset-button:active::before {
+  opacity: 0.9;
+  transition: opacity 0.1s ease;
 }
