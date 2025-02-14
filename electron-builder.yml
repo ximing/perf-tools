@@ -1,6 +1,7 @@
 appId: com.electron.app
 productName: perf-tools
 directories:
+  output: release
   buildResources: build
 files:
   - '!**/.vscode/*'
