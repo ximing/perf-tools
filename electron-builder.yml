@@ -15,6 +15,7 @@ asarUnpack:
 win:
   icon: build/icon.ico
   executableName: perf-tools
+  validateIcon: false
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
