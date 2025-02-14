@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../build/icon.png?asset'
 import { setupVideoProcessor } from './video-processor'
 
 function createWindow(): void {
@@ -11,6 +11,7 @@ function createWindow(): void {
     height: 800,
     show: false,
     autoHideMenuBar: true,
+    icon: join(__dirname, '../../build/icon.png'),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -21,7 +22,7 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

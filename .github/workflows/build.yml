@@ -1,0 +1,78 @@
+name: Build/Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      # macOS 构建
+      - name: Build macOS
+        if: matrix.os == 'macos-latest'
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Windows 构建
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Linux 构建
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
+          npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 上传构建产物
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.deb
+            dist/*.AppImage
+          if-no-files-found: ignore
+
+      # 创建 GitHub Release
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.deb
+            dist/*.AppImage
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

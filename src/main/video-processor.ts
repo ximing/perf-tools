@@ -3,7 +3,11 @@ import ffmpeg from 'fluent-ffmpeg'
 import path from 'path'
 import fs from 'fs/promises'
 import { app } from 'electron'
+import ffmpegPath from '@ffmpeg-installer/ffmpeg'
+import ffprobePath from '@ffprobe-installer/ffprobe'
 
+ffmpeg.setFfmpegPath(ffmpegPath.path)
+ffmpeg.setFfprobePath(ffprobePath.path)
 // 临时文件夹路径
 const getTempPath = () => path.join(app.getPath('temp'), 'video-frames')
 
