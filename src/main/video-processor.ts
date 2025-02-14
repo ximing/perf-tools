@@ -5,42 +5,50 @@ import fs from 'fs/promises'
 import { app } from 'electron'
 import ffmpegPath from '@ffmpeg-installer/ffmpeg'
 import ffprobePath from '@ffprobe-installer/ffprobe'
+import { logger } from './utils/logger'
 
 // 设置 ffmpeg 和 ffprobe 路径
 ffmpeg.setFfmpegPath(ffmpegPath.path)
 ffmpeg.setFfprobePath(ffprobePath.path)
 
+logger.info('FFmpeg paths configured', {
+  ffmpegPath: ffmpegPath.path,
+  ffprobePath: ffprobePath.path
+})
+
 // 临时文件夹路径
-const getTempPath = () => {
-  const tempDir = path.join(app.getPath('temp'), 'video-frames')
-  // 确保路径中的目录分隔符是正确的
-  return path.normalize(tempDir)
+const getTempPath = (): string => {
+  let tempDir = path.join(app.getPath('temp'), 'video-frames')
+  const normalizedPath = path.normalize(tempDir)
+  logger.debug('Temp directory path', { path: normalizedPath, isPackaged: app.isPackaged })
+  return normalizedPath
 }
 
 // 确保临时目录存在
-const ensureTempDir = async () => {
+const ensureTempDir = async (): Promise<string> => {
   const tempPath = getTempPath()
   try {
+    await fs.mkdir(path.dirname(tempPath), { recursive: true })
+
     const stat = await fs.stat(tempPath)
     if (stat.isDirectory()) {
-      // 如果目录存在，先清空
+      logger.debug('Cleaning existing temp directory', { path: tempPath })
       await fs.rm(tempPath, { recursive: true, force: true })
     } else {
-      // 如果存在但不是目录，删除它
+      logger.warn('Temp path exists but is not a directory, removing', { path: tempPath })
       await fs.unlink(tempPath)
     }
   } catch (error) {
-    // 忽略目录不存在的错误
     if (error.code !== 'ENOENT') {
-      console.error('Error checking temp directory:', error)
+      logger.error('Error checking temp directory', error)
     }
   }
 
-  // 创建新的临时目录
   try {
     await fs.mkdir(tempPath, { recursive: true })
+    logger.info('Temp directory created', { path: tempPath })
   } catch (error) {
-    console.error('Error creating temp directory:', error)
+    logger.error('Failed to create temp directory', error)
     throw error
   }
 
@@ -48,17 +56,17 @@ const ensureTempDir = async () => {
 }
 
 // 清理临时文件
-const cleanTempFiles = async () => {
+const cleanTempFiles = async (): Promise<void> => {
   const tempPath = getTempPath()
   try {
     const stat = await fs.stat(tempPath)
     if (stat.isDirectory()) {
       await fs.rm(tempPath, { recursive: true, force: true })
+      logger.info('Temp directory cleaned', { path: tempPath })
     }
   } catch (error) {
-    // 忽略目录不存在的错误
     if (error.code !== 'ENOENT') {
-      console.error('清理临时文件失败:', error)
+      logger.error('Failed to clean temp directory', error)
     }
   }
 }
@@ -67,20 +75,31 @@ const cleanTempFiles = async () => {
 const getVideoDuration = async (videoPath: string): Promise<number> => {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(videoPath, (err, metadata) => {
-      if (err) reject(err)
-      else resolve(metadata.format.duration || 0)
+      if (err) {
+        logger.error('Failed to get video duration', err)
+        reject(err)
+      } else {
+        const duration = metadata.format.duration || 0
+        logger.debug('Video duration retrieved', { path: videoPath, duration })
+        resolve(duration)
+      }
     })
   })
+}
+
+interface Frame {
+  path: string
+  index: number
+  timestamp: number
 }
 
 // 设置IPC处理器
 export function setupVideoProcessor(): void {
   // 处理视频文件
-  ipcMain.handle('process-video', async (event, videoPath: string) => {
+  ipcMain.handle('process-video', async (event, videoPath: string): Promise<Frame[]> => {
+    logger.info('Starting video processing', { path: videoPath })
     try {
       const tempPath = await ensureTempDir()
-      console.log('Temp directory created:', tempPath) // 添加日志
-
       const duration = await getVideoDuration(videoPath)
       let lastProgress = 0
 
@@ -91,16 +110,17 @@ export function setupVideoProcessor(): void {
             if (currentProgress > lastProgress) {
               lastProgress = currentProgress
               event.sender.send('video-progress', currentProgress)
+              // logger.debug('Processing progress', { progress: currentProgress })
             }
           })
           .on('error', (err) => {
-            console.error('FFmpeg error:', err)
+            logger.error('FFmpeg processing error', err)
             reject(err)
           })
           .on('end', async () => {
             try {
               const files = await fs.readdir(tempPath)
-              console.log('Generated files:', files) // 添加日志
+              logger.debug('Generated frame files', { count: files.length })
 
               const frameFiles = files
                 .filter(f => f.endsWith('.jpg'))
@@ -116,9 +136,14 @@ export function setupVideoProcessor(): void {
                 return { path: filePath, index, timestamp }
               })
 
+              logger.info('Video processing completed', {
+                frameCount: frames.length,
+                videoPath,
+                tempPath
+              })
               resolve(frames)
             } catch (error) {
-              console.error('Error processing frames:', error)
+              logger.error('Error processing frames', error)
               reject(error)
             }
           })
@@ -128,20 +153,21 @@ export function setupVideoProcessor(): void {
             '-start_number', '1'
           ])
           .videoFilters([
-            'select=1',  // 选择所有帧
-            'setpts=N/TB' // 保持原始时间戳
+            'select=1',
+            'setpts=N/TB'
           ])
           .output(path.join(tempPath, 'frame-%d.jpg'))
           .run()
       })
     } catch (error) {
-      console.error('Process video error:', error)
+      logger.error('Video processing failed', error)
       throw error
     }
   })
 
   // 清理临时文件
   ipcMain.handle('cleanup-frames', async () => {
+    logger.info('Cleaning up frame files')
     await cleanTempFiles()
   })
 }
