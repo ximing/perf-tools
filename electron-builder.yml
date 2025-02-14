@@ -11,7 +11,9 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
-  - resources/**
+  - "node_modules/@ffmpeg-installer/**/*"
+  - "node_modules/@ffprobe-installer/**/*"
+  - "node_modules/ffmpeg-static/**/*"
 win:
   executableName: perf-tools
   # 暂时注释掉图标配置

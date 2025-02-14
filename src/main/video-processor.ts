@@ -7,13 +7,27 @@ import ffmpegPath from '@ffmpeg-installer/ffmpeg'
 import ffprobePath from '@ffprobe-installer/ffprobe'
 import { logger } from './utils/logger'
 
+// 获取正确的二进制文件路径
+const getBinaryPath = (originalPath: string): string => {
+  if (app.isPackaged) {
+    // 在打包环境中，修正路径
+    return path.join(process.resourcesPath, 'app.asar.unpacked', originalPath.split('app.asar/')[1])
+  }
+  return originalPath
+}
+
 // 设置 ffmpeg 和 ffprobe 路径
-ffmpeg.setFfmpegPath(ffmpegPath.path)
-ffmpeg.setFfprobePath(ffprobePath.path)
+const ffmpegBinaryPath = getBinaryPath(ffmpegPath.path)
+const ffprobeBinaryPath = getBinaryPath(ffprobePath.path)
+
+ffmpeg.setFfmpegPath(ffmpegBinaryPath)
+ffmpeg.setFfprobePath(ffprobeBinaryPath)
 
 logger.info('FFmpeg paths configured', {
-  ffmpegPath: ffmpegPath.path,
-  ffprobePath: ffprobePath.path
+  ffmpegPath: ffmpegBinaryPath,
+  ffprobePath: ffprobeBinaryPath,
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath
 })
 
 // 临时文件夹路径
