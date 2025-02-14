@@ -6,6 +6,7 @@ import { app } from 'electron'
 import ffmpegPath from '@ffmpeg-installer/ffmpeg'
 import ffprobePath from '@ffprobe-installer/ffprobe'
 
+// 设置 ffmpeg 和 ffprobe 路径
 ffmpeg.setFfmpegPath(ffmpegPath.path)
 ffmpeg.setFfprobePath(ffprobePath.path)
 // 临时文件夹路径
