@@ -104,7 +104,9 @@ const VideoFrameAnalyzer: React.FC = () => {
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = Math.floor(totalSeconds % 60)
     const ms = Math.floor((totalSeconds % 1) * 1000)
-    return `${minutes}:${seconds}.${ms}`
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms
+      .toString()
+      .padStart(3, '0')}`
   }
 
   const getDuration = () => {
@@ -268,7 +270,6 @@ const VideoFrameAnalyzer: React.FC = () => {
                     <Button
                       type="text"
                       icon={<CopyOutlined />}
-                      onClick={handleCopyDuration}
                       size="small"
                       className="copy-button"
                     />
