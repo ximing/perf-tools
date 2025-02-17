@@ -360,7 +360,7 @@ const VideoFrameAnalyzer: React.FC = () => {
             </Button>
           </div>
           {/* 拖放区域 */}
-          <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flex: 1 }}>
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '5px', flex: 1 }}>
             <div
               className={`frame-drop-zone ${isDragging === 'start' ? 'dragging' : ''}`}
               onDragOver={handleDragOver}
