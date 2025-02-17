@@ -1,3 +1,68 @@
+/* 主题变量 */
+:root {
+  color-scheme: light dark;
+}
+
+:root[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --text-primary: #000000;
+  --text-secondary: rgba(0, 0, 0, 0.65);
+  --border-color: #e8e8e8;
+  --header-gradient: linear-gradient(135deg, #f0f2f5 0%, #e6e9ec 100%);
+  --timeline-bg: #f0f2f5;
+  --frame-hover: rgba(0, 0, 0, 0.04);
+  --frame-selected: rgba(24, 144, 255, 0.1);
+  --dropzone-bg: #fafafa;
+  --dropzone-border: #d9d9d9;
+}
+
+:root[data-theme='dark'] {
+  --bg-primary: #141414;
+  --bg-secondary: #1f1f1f;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --border-color: #303030;
+  --header-gradient: linear-gradient(135deg, #1a1a1a 0%, #373737 100%);
+  --timeline-bg: #262626;
+  --frame-hover: rgba(255, 255, 255, 0.08);
+  --frame-selected: rgba(24, 144, 255, 0.2);
+  --dropzone-bg: #141414;
+  --dropzone-border: #434343;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='system'] {
+    --bg-primary: #141414;
+    --bg-secondary: #1f1f1f;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.65);
+    --border-color: #303030;
+    --header-gradient: linear-gradient(135deg, #1a1a1a 0%, #373737 100%);
+    --timeline-bg: #262626;
+    --frame-hover: rgba(255, 255, 255, 0.08);
+    --frame-selected: rgba(24, 144, 255, 0.2);
+    --dropzone-bg: #141414;
+    --dropzone-border: #434343;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme='system'] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --text-primary: #000000;
+    --text-secondary: rgba(0, 0, 0, 0.65);
+    --border-color: #e8e8e8;
+    --header-gradient: linear-gradient(135deg, #f0f2f5 0%, #e6e9ec 100%);
+    --timeline-bg: #f0f2f5;
+    --frame-hover: rgba(0, 0, 0, 0.04);
+    --frame-selected: rgba(24, 144, 255, 0.1);
+    --dropzone-bg: #fafafa;
+    --dropzone-border: #d9d9d9;
+  }
+}
+
 .video-container {
   height: 100vh;
   flex-direction: column;
@@ -5,18 +70,21 @@
   padding: 10px;
   box-sizing: border-box;
   overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .video-header {
   padding: 16px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #373737 100%);
+  background: var(--header-gradient);
   border-radius: 8px;
   margin-bottom: 5px;
-  color: white;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .video-info {
@@ -44,13 +112,13 @@
 }
 
 .label {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-secondary);
 }
 
 .value {
-  color: #fff;
+  color: var(--text-primary);
   font-family: 'Roboto Mono', monospace;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--frame-hover);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -62,6 +130,10 @@
 }
 
 .frames-container {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 5px 0;
   overflow: auto;
   display: flex;
   width: 100vw;
@@ -73,7 +145,11 @@
   scroll-snap-align: center;
   box-sizing: border-box;
 }
-.frame-item>img {
+.frame-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--frame-hover);
+}
+.frame-item > img {
   /* width: 50px; */
   height: 110px;
 }
@@ -192,7 +268,8 @@
 
 /* 上传区域样式 */
 .upload-container {
-  padding: 20px;
+  background: var(--bg-primary);
+  padding: 40px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -200,10 +277,35 @@
   justify-content: center;
   height: 100vh;
   width: 100vw;
+  color: var(--text-primary);
 }
+
 .upload-container .ant-upload-wrapper {
   width: 100%;
-  height: 100%;
+  max-width: 600px;  /* 限制最大宽度 */
+}
+
+.upload-container .ant-upload-drag {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.upload-container .ant-upload-text {
+  color: var(--text-primary) !important;
+  font-size: 16px;
+  margin: 16px 0 8px !important;
+}
+
+.upload-container .ant-upload-hint {
+  color: var(--text-secondary) !important;
+}
+
+.upload-container .ant-upload-drag-icon {
+  color: var(--text-secondary);
+  font-size: 48px;
+  margin-bottom: 0 !important;
 }
 
 .upload-overlay {
@@ -212,7 +314,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--bg-primary);
+  opacity: 0.95;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -221,49 +324,61 @@
 }
 
 .progress-container {
-  width: 100%;
-  height: 4px;
-  background-color: #f0f0f0;
-  border-radius: 2px;
-  margin: 10px 0;
+  background: var(--bg-secondary);
+  border-radius: 4px;
   overflow: hidden;
+  width: 300px;  /* 固定宽度 */
+  height: 4px;
+  margin: 10px 0;
 }
 
 .progress-bar {
+  background: linear-gradient(90deg, #1890ff, #36cfc9);
   height: 100%;
-  background-color: #1890ff;
   transition: width 0.3s ease;
 }
 
 .progress-text {
   text-align: center;
-  color: #666;
-  margin-top: 5px;
+  color: var(--text-secondary);
+  margin-top: 8px;
   font-size: 14px;
+}
+
+/* 添加动画效果 */
+.upload-container .ant-upload-drag-icon .anticon {
+  transition: transform 0.3s ease;
+}
+
+.upload-container:hover .ant-upload-drag-icon .anticon {
+  transform: translateY(-5px);
+}
+
+.upload-container .ant-upload-drag {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-container .ant-upload-drag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* 时间轴容器 */
 .timeline-container {
-  padding: 20px;
-  position: relative;
-  background: linear-gradient(to bottom, #2c2c2c, #1a1a1a);
+  background: var(--timeline-bg);
+  padding: 10px;
   border-radius: 8px;
-  margin: 10px 0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-  box-sizing: border-box;
+  margin-top: 5px;
+  position: relative;
 }
 
 /* 时间轴主体 */
 .timeline {
-  width: 100%;
-  height: 50px;
-  position: relative;
-  background: #333;
-  border-radius: 4px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
   cursor: pointer;
-  user-select: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
 
 /* 时间刻度 */
@@ -292,44 +407,19 @@
 
 /* 时间轴滑块 */
 .timeline-slider {
-  position: absolute;
-  width: 2px;
-  height: calc(100% + 16px);
-  background: #ed5408;
-  top: -8px;
-  transform: translateX(-50%);
-  cursor: grab;
-  transition: width 0.2s ease;
-}
-
-/* 滑块顶部手柄 */
-.timeline-slider::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
   width: 12px;
   height: 12px;
-  background: #ed5408;
+  background: #1890ff;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(237, 84, 8, 0.3);
-  transition: all 0.2s ease;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 4px var(--frame-selected);
+  transition: box-shadow 0.2s;
 }
 
-/* 滑块底部手柄 */
-.timeline-slider::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 12px;
-  background: #ed5408;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(237, 84, 8, 0.3);
-  transition: all 0.2s ease;
+.timeline-slider:hover {
+  box-shadow: 0 0 0 6px var(--frame-selected);
 }
 
 /* 拖动状态 */
@@ -388,11 +478,10 @@
 
 /* 拖放区域样式 */
 .frame-drop-zone {
-  border: 2px dashed #d9d9d9;
-  border-radius: 4px;
+  border: 2px dashed var(--dropzone-border);
+  border-radius: 8px;
   padding: 20px;
-  text-align: center;
-  background: #fafafa;
+  background: var(--dropzone-bg);
   transition: all 0.3s;
   min-height: 120px;
   display: flex;
@@ -404,7 +493,7 @@
 
 .frame-drop-zone.dragging {
   border-color: #1890ff;
-  background: #e6f7ff;
+  background: var(--frame-selected);
 }
 
 .frame-drop-zone img {
@@ -424,11 +513,11 @@
 .duration-display:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
-.copy-button{
-  color: #fff;
+.copy-button {
+  color: var(--text-primary) !important;
 }
-.duration-display .copy-button:hover {
-  color: #1890ff;
+.copy-button:hover {
+  color: #1890ff !important;
 }
 
 .reset-button {
@@ -477,4 +566,28 @@
 .reset-button:active::before {
   opacity: 0.9;
   transition: opacity 0.1s ease;
+}
+
+.theme-button {
+  color: var(--text-primary) !important;
+  border: none !important;
+  background: transparent !important;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.theme-button:hover {
+  background: var(--frame-hover) !important;
+}
+
+/* 上传页面的主题按钮位置 */
+.upload-container .theme-button {
+  position: fixed;
+  top: 16px;
+  right: 16px;
 }

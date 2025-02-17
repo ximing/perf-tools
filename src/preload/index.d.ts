@@ -5,6 +5,8 @@ export interface ElectronAPI {
   cleanupFrames: () => Promise<void>
   onProgress: (callback: (progress: number) => void) => void
   removeProgressListener: () => void
+  getTheme: () => Promise<'system' | 'light' | 'dark'>
+  setTheme: (theme: 'system' | 'light' | 'dark') => Promise<void>
 }
 
 declare global {

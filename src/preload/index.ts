@@ -19,7 +19,9 @@ if (process.contextIsolated) {
       },
       removeProgressListener: () => {
         ipcRenderer.removeAllListeners('video-progress')
-      }
+      },
+      getTheme: () => ipcRenderer.invoke('get-theme'),
+      setTheme: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('set-theme', theme)
     })
   } catch (error) {
     console.error(error)

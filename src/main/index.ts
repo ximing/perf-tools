@@ -4,6 +4,17 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../build/icon.png?asset'
 import { setupVideoProcessor } from './video-processor'
 
+let store: any
+
+// 动态导入 electron-store
+const initStore = async () => {
+  const { default: Store } = await import('electron-store')
+  store = new Store()
+}
+
+// 初始化 store
+initStore()
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -55,6 +66,15 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // 添加主题相关的 IPC 处理
+  ipcMain.handle('get-theme', () => {
+    return store.get('theme', 'system')
+  })
+
+  ipcMain.handle('set-theme', (_, theme: 'system' | 'light' | 'dark') => {
+    store.set('theme', theme)
+  })
 
   createWindow()
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Upload, Button, Space, message, Image } from 'antd'
-import { InboxOutlined, CopyOutlined } from '@ant-design/icons'
-import type { UploadProps } from 'antd'
+import { Upload, Button, Space, message, Image, Dropdown } from 'antd'
+import { InboxOutlined, CopyOutlined, BulbOutlined } from '@ant-design/icons'
+import type { UploadProps, MenuProps } from 'antd'
 import './video.css'
 import clsx from 'clsx'
 
@@ -25,6 +25,8 @@ declare global {
       cleanupFrames: () => Promise<void>
       onProgress: (callback: (progress: number) => void) => void
       removeProgressListener: () => void
+      getTheme: () => Promise<'system' | 'light' | 'dark'>
+      setTheme: (theme: 'system' | 'light' | 'dark') => Promise<void>
     }
   }
 }
@@ -87,6 +89,7 @@ const VideoFrameAnalyzer: React.FC = () => {
   const framesContainerRef = useRef<HTMLDivElement>(null)
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false)
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
+  const [theme, setTheme] = useState<'system' | 'light' | 'dark'>('system')
 
   useEffect(() => {
     // 设置进度监听器
@@ -98,6 +101,14 @@ const VideoFrameAnalyzer: React.FC = () => {
     return () => {
       window.electronAPI.removeProgressListener()
     }
+  }, [])
+
+  // 初始化主题
+  useEffect(() => {
+    window.electronAPI.getTheme().then((savedTheme) => {
+      setTheme(savedTheme)
+      document.documentElement.setAttribute('data-theme', savedTheme)
+    })
   }, [])
 
   const handleReset = async (): Promise<void> => {
@@ -308,6 +319,31 @@ const VideoFrameAnalyzer: React.FC = () => {
     }
   }, [getDuration])
 
+  // 处理主题切换
+  const handleThemeChange = async (newTheme: 'system' | 'light' | 'dark') => {
+    setTheme(newTheme)
+    await window.electronAPI.setTheme(newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+  }
+
+  const themeItems: MenuProps['items'] = [
+    {
+      key: 'system',
+      label: '跟随系统',
+      onClick: () => handleThemeChange('system')
+    },
+    {
+      key: 'light',
+      label: '浅色',
+      onClick: () => handleThemeChange('light')
+    },
+    {
+      key: 'dark',
+      label: '深色',
+      onClick: () => handleThemeChange('dark')
+    }
+  ]
+
   return (
     <>
       {frames.length === 0 ? (
@@ -327,6 +363,13 @@ const VideoFrameAnalyzer: React.FC = () => {
               <div className="progress-text">正在处理视频... {(progress / 100).toFixed(1)}%</div>
             </div>
           )}
+          <Dropdown menu={{ items: themeItems }} placement="bottomRight">
+            <Button
+              type="text"
+              icon={<BulbOutlined />}
+              className="theme-button"
+            />
+          </Dropdown>
         </div>
       ) : (
         <div className="video-container">
@@ -370,9 +413,18 @@ const VideoFrameAnalyzer: React.FC = () => {
                 </Space>
               )}
             </div>
-            <Button className="reset-button" onClick={handleReset} loading={loading}>
-              重新上传视频
-            </Button>
+            <Space>
+              <Button className="reset-button" onClick={handleReset} loading={loading}>
+                重新上传视频
+              </Button>
+              <Dropdown menu={{ items: themeItems }} placement="bottomRight">
+                <Button
+                  type="text"
+                  icon={<BulbOutlined />}
+                  className="theme-button"
+                />
+              </Dropdown>
+            </Space>
           </div>
           {/* 拖放区域 */}
           <div style={{ display: 'flex', gap: '20px', marginBottom: '5px', flex: 1 }}>
