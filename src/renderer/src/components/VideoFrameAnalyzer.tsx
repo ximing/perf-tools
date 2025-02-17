@@ -85,17 +85,26 @@ const VideoFrameAnalyzer: React.FC = () => {
   const handleReset = async (): Promise<void> => {
     try {
       setLoading(true)
-      // 先清理临时文件
-      await window.electronAPI.cleanupFrames()
-      // 然后重置状态
+
+      // 1. 先重置所有状态
       setFrames([])
       setStartFrame(null)
       setEndFrame(null)
       setCurrentFrame(null)
+      setProgress(0)
+      setIsDragging(null)
+      setIsDraggingTimeline(false)
+
+      // 2. 清理临时文件
+      await window.electronAPI.cleanupFrames()
+
+      // 3. 等待一小段时间确保清理完成
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       message.success('重置成功')
     } catch (error) {
+      console.error('Reset error:', error)
       message.error('重置失败')
-      console.error(error)
     } finally {
       setLoading(false)
     }
@@ -103,27 +112,33 @@ const VideoFrameAnalyzer: React.FC = () => {
 
   const processVideo = async (file: File): Promise<void> => {
     try {
-      // 先重置
-      await handleReset()
-
+      // 2. 开始处理新视频
       setLoading(true)
       setProgress(0)
+
+      // 3. 再次确认临时目录已清理
+      await window.electronAPI.cleanupFrames()
+
+      // 4. 处理视频
       const frames = await window.electronAPI.processVideo(file.path)
 
-      // 确保数据有效
-      if (Array.isArray(frames) && frames.length > 0) {
-        setFrames(frames)
-        setCurrentFrame(frames[0])
-        message.success('视频帧提取完成')
-      } else {
+      // 5. 验证结果
+      if (!Array.isArray(frames) || frames.length === 0) {
         throw new Error('视频处理结果无效')
       }
+
+      // 6. 更新状态
+      setFrames(frames)
+      setCurrentFrame(frames[0])
+      message.success('视频帧提取完成')
     } catch (error) {
+      console.error('Process video error:', error)
       message.error('处理视频时出错')
-      console.error(error)
-      // 发生错误时也要清理状态
+      // 出错时清理状态
       setFrames([])
       setCurrentFrame(null)
+      setStartFrame(null)
+      setEndFrame(null)
     } finally {
       setLoading(false)
       setProgress(0)
