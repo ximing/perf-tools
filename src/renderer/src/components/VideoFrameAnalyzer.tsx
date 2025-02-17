@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Upload, Button, Space, message, Image } from 'antd'
 import { InboxOutlined, CopyOutlined } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
@@ -65,6 +65,16 @@ function throttle<T extends (...args: any[]) => any>(
   }
 }
 
+const formatDuration = (milliseconds: number): string => {
+  const totalSeconds = milliseconds / 1000
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  const ms = Math.floor((totalSeconds % 1) * 1000)
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms
+    .toString()
+    .padStart(3, '0')}`
+}
+
 const VideoFrameAnalyzer: React.FC = () => {
   const [frames, setFrames] = useState<FrameInfo[]>([])
   const [startFrame, setStartFrame] = useState<FrameInfo | null>(null)
@@ -107,7 +117,7 @@ const VideoFrameAnalyzer: React.FC = () => {
       await window.electronAPI.cleanupFrames()
 
       // 3. 等待一小段时间确保清理完成
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       message.success('重置成功')
     } catch (error) {
@@ -125,7 +135,10 @@ const VideoFrameAnalyzer: React.FC = () => {
 
       await window.electronAPI.cleanupFrames()
       const frames = await window.electronAPI.processVideo(file.path)
-
+      console.log('frames', frames)
+      frames.forEach((frame) => {
+        frame.path = `${frame.path}?t=${Date.now()}`
+      })
       if (!Array.isArray(frames) || frames.length === 0) {
         throw new Error('视频处理结果无效')
       }
@@ -155,39 +168,33 @@ const VideoFrameAnalyzer: React.FC = () => {
     }
   }
 
-  const formatDuration = (milliseconds: number): string => {
-    const totalSeconds = milliseconds / 1000
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = Math.floor(totalSeconds % 60)
-    const ms = Math.floor((totalSeconds % 1) * 1000)
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms
-      .toString()
-      .padStart(3, '0')}`
-  }
-
-  const getDuration = () => {
+  const getDuration = useCallback(() => {
     if (startFrame && endFrame) {
       const duration = endFrame.timestamp - startFrame.timestamp
       return parseInt(duration.toFixed(0))
     }
     return ''
-  }
+  }, [startFrame, endFrame])
 
-  const uploadProps: UploadProps = {
-    name: 'file',
-    multiple: false,
-    accept: 'video/mp4,video/quicktime',
-    showUploadList: false,
-    beforeUpload: (file) => {
-      const isValidVideo = file.type === 'video/mp4' || file.type === 'video/quicktime'
-      if (!isValidVideo) {
-        message.error('只支持 MP4 和 MOV 格式的视频')
+  const uploadProps: UploadProps = useMemo(
+    () => ({
+      name: 'file',
+      multiple: false,
+      accept: 'video/mp4,video/quicktime',
+      showUploadList: false,
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+      beforeUpload: (file) => {
+        const isValidVideo = file.type === 'video/mp4' || file.type === 'video/quicktime'
+        if (!isValidVideo) {
+          message.error('只支持 MP4 和 MOV 格式的视频')
+          return false
+        }
+        processVideo(file)
         return false
       }
-      processVideo(file)
-      return false
-    }
-  }
+    }),
+    [processVideo]
+  )
 
   // 使用节流处理滚动
   const throttledScroll = useCallback(
@@ -208,90 +215,98 @@ const VideoFrameAnalyzer: React.FC = () => {
         }
       }
     }, 100),
-    [isDraggingTimeline]
+    [isDraggingTimeline, framesContainerRef.current]
   )
 
   // 处理时间轴点击和拖动
-  const handleTimelineInteraction = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!timelineRef.current || frames.length === 0) return
-
-    const rect = timelineRef.current.getBoundingClientRect()
-    const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width)
-    const percentage = x / rect.width
-    const frameIndex = Math.min(Math.floor(percentage * frames.length), frames.length - 1)
-    const frame = frames[frameIndex]
-    setCurrentFrame(frame)
-    // 调用节流后的滚动函数
-    throttledScroll(frameIndex)
-  }
+  const handleTimelineInteraction = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!timelineRef.current || frames.length === 0) return
+      const rect = timelineRef.current.getBoundingClientRect()
+      const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width)
+      const percentage = x / rect.width
+      const frameIndex = Math.min(Math.floor(percentage * frames.length), frames.length - 1)
+      const frame = frames[frameIndex]
+      setCurrentFrame(frame)
+      // 调用节流后的滚动函数
+      throttledScroll(frameIndex)
+    },
+    [frames, throttledScroll, setCurrentFrame]
+  )
 
   // 处理时间轴拖动开始
-  const handleTimelineMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault() // 防止文本选择
-    setIsDraggingTimeline(true)
-    handleTimelineInteraction(e) // 立即更新当前帧
-  }
+  const handleTimelineMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault() // 防止文本选择
+      setIsDraggingTimeline(true)
+      handleTimelineInteraction(e) // 立即更新当前帧
+    },
+    [handleTimelineInteraction, setIsDraggingTimeline]
+  )
 
   // 处理时间轴拖动结束
-  const handleTimelineMouseUp = () => {
+  const handleTimelineMouseUp = useCallback(() => {
     setIsDraggingTimeline(false)
-  }
+  }, [setIsDraggingTimeline])
 
   // 处理时间轴离开
-  const handleTimelineMouseLeave = () => {
+  const handleTimelineMouseLeave = useCallback(() => {
     if (isDraggingTimeline) {
       setIsDraggingTimeline(false)
     }
-  }
+  }, [isDraggingTimeline, setIsDraggingTimeline])
 
   // 添加全局鼠标事件监听
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     const handleGlobalMouseUp = () => {
       setIsDraggingTimeline(false)
     }
 
     window.addEventListener('mouseup', handleGlobalMouseUp)
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     return () => {
       window.removeEventListener('mouseup', handleGlobalMouseUp)
     }
   }, [])
 
   // 处理拖拽开始
-  const handleDragStart = (frame: FrameInfo, e: React.DragEvent) => {
-    e.dataTransfer.setData('frame', JSON.stringify(frame))
-    setIsDragging('start')
-  }
+  const handleDragStart = useCallback(
+    (frame: FrameInfo, e: React.DragEvent) => {
+      e.dataTransfer.setData('frame', JSON.stringify(frame))
+      setIsDragging('start')
+    },
+    [setIsDragging]
+  )
 
   // 处理拖拽结束
-  const handleDrop = (type: 'start' | 'end', e: React.DragEvent) => {
-    e.preventDefault()
-    const frame = JSON.parse(e.dataTransfer.getData('frame')) as FrameInfo
-    if (type === 'start') {
-      setStartFrame(frame)
-    } else {
-      setEndFrame(frame)
-    }
-    setIsDragging(null)
-  }
+  const handleDrop = useCallback(
+    (type: 'start' | 'end', e: React.DragEvent) => {
+      e.preventDefault()
+      const frame = JSON.parse(e.dataTransfer.getData('frame')) as FrameInfo
+      if (type === 'start') {
+        setStartFrame(frame)
+      } else {
+        setEndFrame(frame)
+      }
+      setIsDragging(null)
+    },
+    [setStartFrame, setEndFrame, setIsDragging]
+  )
 
   // 处理拖拽悬停
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-  }
+  }, [])
 
   // 添加复制函数
-  const handleCopyDuration = () => {
+  const handleCopyDuration = useCallback(() => {
     const duration = getDuration()
     if (duration) {
       navigator.clipboard.writeText(duration.toString())
       message.success('已复制到剪贴板')
     }
-  }
-
-  // 添加双击处理函数
-  const handleDurationDoubleClick = () => {
-    handleCopyDuration()
-  }
+  }, [getDuration])
 
   return (
     <>
@@ -339,7 +354,7 @@ const VideoFrameAnalyzer: React.FC = () => {
             <div className="duration-display-container">
               {startFrame && endFrame && (
                 <Space>
-                  <div className="duration-display" onClick={handleDurationDoubleClick}>
+                  <div className="duration-display" onClick={handleCopyDuration}>
                     <span>选择时长: {getDuration()} ms</span>
                     <Button
                       type="text"

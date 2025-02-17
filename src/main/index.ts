@@ -8,7 +8,7 @@ function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1200,
-    height: 810,
+    height: 830,
     show: false,
     autoHideMenuBar: true,
     icon: join(__dirname, '../../build/icon.png'),
@@ -16,7 +16,7 @@ function createWindow(): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
-      webSecurity: false  // 允许加载本地资源
+      webSecurity: false // 允许加载本地资源
     }
   })
 

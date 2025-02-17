@@ -32,7 +32,7 @@ logger.info('FFmpeg paths configured', {
 
 // 临时文件夹路径
 const getTempPath = (): string => {
-  let tempDir = path.join(app.getPath('temp'), 'video-frames')
+  const tempDir = path.join(app.getPath('temp'), 'video-frames')
   const normalizedPath = path.normalize(tempDir)
   logger.debug('Temp directory path', { path: normalizedPath, isPackaged: app.isPackaged })
   return normalizedPath
@@ -73,20 +73,11 @@ const ensureTempDir = async (): Promise<string> => {
 const cleanTempFiles = async (): Promise<void> => {
   const tempPath = getTempPath()
   try {
-    const stat = await fs.stat(tempPath)
-    if (stat.isDirectory()) {
-      // 先删除目录内的所有文件
-      const files = await fs.readdir(tempPath)
-      for (const file of files) {
-        const filePath = path.join(tempPath, file)
-        await fs.unlink(filePath)
-      }
-      // 然后删除目录本身
-      await fs.rmdir(tempPath)
-      logger.info('Temp directory cleaned', { path: tempPath })
-    }
+    await fs.access(tempPath)
+    await fs.rm(tempPath, { recursive: true, force: true })
+    logger.info('Temp directory cleaned', { path: tempPath })
   } catch (error) {
-    if (error.code !== 'ENOENT') {
+    if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
       logger.error('Failed to clean temp directory', error)
       throw error
     }
@@ -147,7 +138,7 @@ export function setupVideoProcessor(): void {
               logger.debug('Generated frame files', { count: files.length })
 
               const frameFiles = files
-                .filter(f => f.endsWith('.jpg'))
+                .filter((f) => f.endsWith('.jpg'))
                 .sort((a, b) => {
                   const numA = parseInt(a.replace('frame-', '').replace('.jpg', ''))
                   const numB = parseInt(b.replace('frame-', '').replace('.jpg', ''))
@@ -171,15 +162,8 @@ export function setupVideoProcessor(): void {
               reject(error)
             }
           })
-          .outputOptions([
-            '-vsync', '0',
-            '-frame_pts', '1',
-            '-start_number', '1'
-          ])
-          .videoFilters([
-            'select=1',
-            'setpts=N/TB'
-          ])
+          .outputOptions(['-vsync', '0', '-frame_pts', '1', '-start_number', '1'])
+          .videoFilters(['select=1', 'setpts=N/TB'])
           .output(path.join(tempPath, 'frame-%d.jpg'))
           .run()
       })
