@@ -75,12 +75,20 @@ const cleanTempFiles = async (): Promise<void> => {
   try {
     const stat = await fs.stat(tempPath)
     if (stat.isDirectory()) {
-      await fs.rm(tempPath, { recursive: true, force: true })
+      // 先删除目录内的所有文件
+      const files = await fs.readdir(tempPath)
+      for (const file of files) {
+        const filePath = path.join(tempPath, file)
+        await fs.unlink(filePath)
+      }
+      // 然后删除目录本身
+      await fs.rmdir(tempPath)
       logger.info('Temp directory cleaned', { path: tempPath })
     }
   } catch (error) {
     if (error.code !== 'ENOENT') {
       logger.error('Failed to clean temp directory', error)
+      throw error
     }
   }
 }
@@ -113,6 +121,8 @@ export function setupVideoProcessor(): void {
   ipcMain.handle('process-video', async (event, videoPath: string): Promise<Frame[]> => {
     logger.info('Starting video processing', { path: videoPath })
     try {
+      // 确保临时目录是干净的
+      await cleanTempFiles()
       const tempPath = await ensureTempDir()
       const duration = await getVideoDuration(videoPath)
       let lastProgress = 0

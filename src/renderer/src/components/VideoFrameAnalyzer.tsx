@@ -82,17 +82,48 @@ const VideoFrameAnalyzer: React.FC = () => {
     }
   }, [])
 
-  const processVideo = async (file: File) => {
+  const handleReset = async (): Promise<void> => {
     try {
+      setLoading(true)
+      // 先清理临时文件
+      await window.electronAPI.cleanupFrames()
+      // 然后重置状态
+      setFrames([])
+      setStartFrame(null)
+      setEndFrame(null)
+      setCurrentFrame(null)
+      message.success('重置成功')
+    } catch (error) {
+      message.error('重置失败')
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const processVideo = async (file: File): Promise<void> => {
+    try {
+      // 先重置
+      await handleReset()
+
       setLoading(true)
       setProgress(0)
       const frames = await window.electronAPI.processVideo(file.path)
-      setFrames(frames)
-      setCurrentFrame(frames[0])
-      message.success('视频帧提取完成')
+
+      // 确保数据有效
+      if (Array.isArray(frames) && frames.length > 0) {
+        setFrames(frames)
+        setCurrentFrame(frames[0])
+        message.success('视频帧提取完成')
+      } else {
+        throw new Error('视频处理结果无效')
+      }
     } catch (error) {
       message.error('处理视频时出错')
       console.error(error)
+      // 发生错误时也要清理状态
+      setFrames([])
+      setCurrentFrame(null)
     } finally {
       setLoading(false)
       setProgress(0)
@@ -115,13 +146,6 @@ const VideoFrameAnalyzer: React.FC = () => {
       return parseInt(duration.toFixed(0))
     }
     return ''
-  }
-
-  const handleReset = async () => {
-    setFrames([])
-    setStartFrame(null)
-    setEndFrame(null)
-    await window.electronAPI.cleanupFrames()
   }
 
   const uploadProps: UploadProps = {
