@@ -166,7 +166,6 @@
   width: 240px;
 }
 
-
 .frame-item {
   position: relative;
   cursor: pointer;
@@ -196,7 +195,8 @@
 }
 
 /* 时间轴预览显示规则 */
-.timeline-slider.dragging .preview-image {
+.timeline-slider.dragging .preview-image,
+.timeline-slider:hover .preview-image {
   display: block !important;
   z-index: 1001;
 }
