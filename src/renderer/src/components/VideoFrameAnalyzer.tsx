@@ -127,9 +127,14 @@ const VideoFrameAnalyzer: React.FC = () => {
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: false,
-    accept: 'video/mp4',
+    accept: 'video/mp4,video/quicktime',
     showUploadList: false,
     beforeUpload: (file) => {
+      const isValidVideo = file.type === 'video/mp4' || file.type === 'video/quicktime'
+      if (!isValidVideo) {
+        message.error('只支持 MP4 和 MOV 格式的视频')
+        return false
+      }
       processVideo(file)
       return false
     }
@@ -248,7 +253,7 @@ const VideoFrameAnalyzer: React.FC = () => {
               <InboxOutlined />
             </p>
             <p className="ant-upload-text">点击或拖拽视频文件到此区域</p>
-            <p className="ant-upload-hint">仅支持 MP4 格式</p>
+            <p className="ant-upload-hint">支持 MP4、MOV 格式</p>
           </Dragger>
           {loading && (
             <div className="upload-overlay">
