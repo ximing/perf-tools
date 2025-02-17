@@ -11,6 +11,13 @@ interface FrameInfo {
   index: number
 }
 
+// 添加视频信息接口
+interface VideoInfo {
+  name: string
+  duration: string
+  frameCount: number
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -69,6 +76,7 @@ const VideoFrameAnalyzer: React.FC = () => {
   const timelineRef = useRef<HTMLDivElement>(null)
   const framesContainerRef = useRef<HTMLDivElement>(null)
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false)
+  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
 
   useEffect(() => {
     // 设置进度监听器
@@ -112,22 +120,24 @@ const VideoFrameAnalyzer: React.FC = () => {
 
   const processVideo = async (file: File): Promise<void> => {
     try {
-      // 2. 开始处理新视频
       setLoading(true)
       setProgress(0)
 
-      // 3. 再次确认临时目录已清理
       await window.electronAPI.cleanupFrames()
-
-      // 4. 处理视频
       const frames = await window.electronAPI.processVideo(file.path)
 
-      // 5. 验证结果
       if (!Array.isArray(frames) || frames.length === 0) {
         throw new Error('视频处理结果无效')
       }
 
-      // 6. 更新状态
+      // 设置视频信息
+      const duration = frames[frames.length - 1].timestamp
+      setVideoInfo({
+        name: file.name,
+        duration: formatDuration(duration),
+        frameCount: frames.length
+      })
+
       setFrames(frames)
       setCurrentFrame(frames[0])
       message.success('视频帧提取完成')
@@ -306,6 +316,26 @@ const VideoFrameAnalyzer: React.FC = () => {
       ) : (
         <div className="video-container">
           <div className="video-header">
+            <div className="video-info">
+              {videoInfo && (
+                <>
+                  <div className="video-name">
+                    <span className="label">视频名称:</span>
+                    <span className="value">{videoInfo.name}</span>
+                  </div>
+                  <div className="video-stats">
+                    <span className="stat-item">
+                      <span className="label">总时长:</span>
+                      <span className="value">{videoInfo.duration}</span>
+                    </span>
+                    <span className="stat-item">
+                      <span className="label">总帧数:</span>
+                      <span className="value">{videoInfo.frameCount}</span>
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
             <div className="duration-display-container">
               {startFrame && endFrame && (
                 <Space>

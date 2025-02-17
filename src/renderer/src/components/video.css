@@ -8,12 +8,57 @@
 }
 
 .video-header {
-  padding-bottom: 10px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #373737 100%);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: white;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
 }
-.duration-display-container {
-  display: flex;
+
+.video-info {
   flex: 1;
+}
+
+.video-name {
+  margin-bottom: 8px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.video-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.value {
+  color: #fff;
+  font-family: 'Roboto Mono', monospace;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.duration-display-container {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .frames-container {
@@ -379,7 +424,9 @@
 .duration-display:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
-
+.copy-button{
+  color: #fff;
+}
 .duration-display .copy-button:hover {
   color: #1890ff;
 }
