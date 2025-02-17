@@ -90,6 +90,8 @@ const VideoFrameAnalyzer: React.FC = () => {
   const [isDraggingTimeline, setIsDraggingTimeline] = useState(false)
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [theme, setTheme] = useState<'system' | 'light' | 'dark'>('system')
+  const rafRef = useRef<number>()
+  const lastFrameIndexRef = useRef<number>(-1)
 
   useEffect(() => {
     // 设置进度监听器
@@ -207,16 +209,15 @@ const VideoFrameAnalyzer: React.FC = () => {
     [processVideo]
   )
 
-  // 使用节流处理滚动
-  const throttledScroll = useCallback(
-    throttle((frameIndex: number) => {
+  // 使用 RAF 优化的滚动函数
+  const smoothScroll = useCallback(
+    (frameIndex: number) => {
       if (framesContainerRef.current) {
         const frameElement = framesContainerRef.current.children[frameIndex] as HTMLElement
         if (frameElement) {
           const containerWidth = framesContainerRef.current.clientWidth
           const frameLeft = frameElement.offsetLeft
           const frameWidth = frameElement.offsetWidth
-
           const scrollPosition = frameLeft - containerWidth / 2 + frameWidth / 2
 
           framesContainerRef.current.scrollTo({
@@ -225,40 +226,67 @@ const VideoFrameAnalyzer: React.FC = () => {
           })
         }
       }
-    }, 100),
-    [isDraggingTimeline, framesContainerRef.current]
+    },
+    [isDraggingTimeline]
   )
 
-  // 处理时间轴点击和拖动
+  // 处理时间轴交互
   const handleTimelineInteraction = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!timelineRef.current || frames.length === 0) return
+
       const rect = timelineRef.current.getBoundingClientRect()
       const x = Math.min(Math.max(0, e.clientX - rect.left), rect.width)
       const percentage = x / rect.width
       const frameIndex = Math.min(Math.floor(percentage * frames.length), frames.length - 1)
+
+      // 避免重复处理相同帧
+      if (frameIndex === lastFrameIndexRef.current) return
+      lastFrameIndexRef.current = frameIndex
+
       const frame = frames[frameIndex]
       setCurrentFrame(frame)
-      // 调用节流后的滚动函数
-      throttledScroll(frameIndex)
+
+      // 取消之前的 RAF
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+
+      // 使用 RAF 处理滚动
+      rafRef.current = requestAnimationFrame(() => {
+        smoothScroll(frameIndex)
+      })
     },
-    [frames, throttledScroll, setCurrentFrame]
+    [frames, smoothScroll]
   )
+
+  // 清理 RAF
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+    }
+  }, [])
 
   // 处理时间轴拖动开始
   const handleTimelineMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault() // 防止文本选择
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      e.preventDefault()
       setIsDraggingTimeline(true)
-      handleTimelineInteraction(e) // 立即更新当前帧
+      handleTimelineInteraction(e)
     },
-    [handleTimelineInteraction, setIsDraggingTimeline]
+    [handleTimelineInteraction]
   )
 
   // 处理时间轴拖动结束
   const handleTimelineMouseUp = useCallback(() => {
     setIsDraggingTimeline(false)
-  }, [setIsDraggingTimeline])
+    lastFrameIndexRef.current = -1 // 重置帧索引
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   // 处理时间轴离开
   const handleTimelineMouseLeave = useCallback(() => {
@@ -364,11 +392,7 @@ const VideoFrameAnalyzer: React.FC = () => {
             </div>
           )}
           <Dropdown menu={{ items: themeItems }} placement="bottomRight">
-            <Button
-              type="text"
-              icon={<BulbOutlined />}
-              className="theme-button"
-            />
+            <Button type="text" icon={<BulbOutlined />} className="theme-button" />
           </Dropdown>
         </div>
       ) : (
@@ -418,11 +442,7 @@ const VideoFrameAnalyzer: React.FC = () => {
                 重新上传视频
               </Button>
               <Dropdown menu={{ items: themeItems }} placement="bottomRight">
-                <Button
-                  type="text"
-                  icon={<BulbOutlined />}
-                  className="theme-button"
-                />
+                <Button type="text" icon={<BulbOutlined />} className="theme-button" />
               </Dropdown>
             </Space>
           </div>
@@ -435,7 +455,7 @@ const VideoFrameAnalyzer: React.FC = () => {
               onClick={() => {
                 if (startFrame) {
                   setCurrentFrame(startFrame)
-                  throttledScroll(startFrame.index)
+                  smoothScroll(startFrame.index)
                 }
               }}
             >
@@ -453,7 +473,7 @@ const VideoFrameAnalyzer: React.FC = () => {
               onClick={() => {
                 if (endFrame) {
                   setCurrentFrame(endFrame)
-                  throttledScroll(endFrame.index)
+                  smoothScroll(endFrame.index)
                 }
               }}
             >
@@ -499,19 +519,15 @@ const VideoFrameAnalyzer: React.FC = () => {
           </div>
 
           {/* 时间轴 */}
-          <div className="timeline-container">
-            <div
-              className="timeline"
-              ref={timelineRef}
-              onMouseDown={handleTimelineMouseDown}
-              onMouseUp={handleTimelineMouseUp}
-              onMouseLeave={handleTimelineMouseLeave}
-              onMouseMove={(e) => {
-                if (isDraggingTimeline) {
-                  handleTimelineInteraction(e)
-                }
-              }}
-            >
+          <div
+            className="timeline-container"
+            ref={timelineRef}
+            onMouseDown={handleTimelineMouseDown}
+            onMouseUp={handleTimelineMouseUp}
+            onMouseLeave={handleTimelineMouseLeave}
+            onMouseMove={isDraggingTimeline ? handleTimelineInteraction : undefined}
+          >
+            <div className="timeline">
               {currentFrame && (
                 <div
                   className={`timeline-slider ${isDraggingTimeline ? 'dragging' : ''}`}
