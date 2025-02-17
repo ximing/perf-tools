@@ -312,25 +312,44 @@ const VideoFrameAnalyzer: React.FC = () => {
   // 处理拖拽开始
   const handleDragStart = useCallback(
     (frame: FrameInfo, e: React.DragEvent) => {
-      e.dataTransfer.setData('frame', JSON.stringify(frame))
-      setIsDragging('start')
+      // 设置拖拽数据
+      e.dataTransfer.setData('frame-index', frame.index.toString())
+      // 清除之前的拖拽状态
+      setIsDragging(null)
     },
-    [setIsDragging]
+    []
   )
+
+  // 处理拖拽进入
+  const handleDragEnter = useCallback(
+    (zone: 'start' | 'end') => {
+      setIsDragging(zone)
+    },
+    []
+  )
+
+  // 处理拖拽离开
+  const handleDragLeave = useCallback(() => {
+    setIsDragging(null)
+  }, [])
 
   // 处理拖拽结束
   const handleDrop = useCallback(
     (type: 'start' | 'end', e: React.DragEvent) => {
       e.preventDefault()
-      const frame = JSON.parse(e.dataTransfer.getData('frame')) as FrameInfo
-      if (type === 'start') {
-        setStartFrame(frame)
-      } else {
-        setEndFrame(frame)
+      const frameIndex = parseInt(e.dataTransfer.getData('frame-index'))
+      const frame = frames[frameIndex]
+
+      if (frame) {
+        if (type === 'start') {
+          setStartFrame(frame)
+        } else {
+          setEndFrame(frame)
+        }
       }
       setIsDragging(null)
     },
-    [setStartFrame, setEndFrame, setIsDragging]
+    [frames, setStartFrame, setEndFrame]
   )
 
   // 处理拖拽悬停
@@ -452,6 +471,8 @@ const VideoFrameAnalyzer: React.FC = () => {
               className={`frame-drop-zone ${isDragging === 'start' ? 'dragging' : ''}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop('start', e)}
+              onDragEnter={() => handleDragEnter('start')}
+              onDragLeave={handleDragLeave}
               onClick={() => {
                 if (startFrame) {
                   setCurrentFrame(startFrame)
@@ -470,6 +491,8 @@ const VideoFrameAnalyzer: React.FC = () => {
               className={`frame-drop-zone ${isDragging === 'end' ? 'dragging' : ''}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop('end', e)}
+              onDragEnter={() => handleDragEnter('end')}
+              onDragLeave={handleDragLeave}
               onClick={() => {
                 if (endFrame) {
                   setCurrentFrame(endFrame)
